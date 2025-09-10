@@ -16,6 +16,24 @@ public class ETLPipeline {
     private static final String INPUT_FILE = "data/products.csv";
     private static final String OUTPUT_FILE = "data/transformed_products.csv";
 
+    public static void main(String[] args) {
+        List<String[]> data = readFile(INPUT_FILE);
+        if (data == null) return;  // stop if no input file
+
+        List<String[]> transformed = transformFile(data); 
+        writeFile(transformed, OUTPUT_FILE);
+
+        int rowsRead = Math.max(data.size() - 1, 0);
+        int rowsTransformed = Math.max(transformed.size() - 1, 0);
+        int rowsSkipped = rowsRead - rowsTransformed;
+
+        System.out.println("Summary:");
+        System.out.println("Rows read: " + rowsRead);
+        System.out.println("Rows transformed: " + rowsTransformed);
+        System.out.println("Rows skipped: " + rowsSkipped);
+        System.out.println("Output written to: " + OUTPUT_FILE);
+    }
+    
     private static List<String[]> readFile(String path) {
         Path file = Paths.get(path);
 
@@ -32,6 +50,7 @@ public class ETLPipeline {
             }
         } catch (IOException e) {
             System.err.println("ERROR: Reading " + path + ": " + e.getMessage());
+            return null;
         }
 
         return rows;
@@ -40,7 +59,7 @@ public class ETLPipeline {
     private static List<String[]> transformFile(List<String[]> rows) {
         List<String[]> result = new ArrayList<>();
         result.add(new String[]{"ProductID","Name","Price","Category","PriceRange"});
-        if (rows.size() <= 1) return result;
+        if (rows.size() <= 1) return result; // only header, no data
 
         for (int i = 1; i < rows.size(); i++) {
             String[] r = rows.get(i);
@@ -50,11 +69,15 @@ public class ETLPipeline {
             BigDecimal price = new BigDecimal(r[2]).setScale(2, RoundingMode.HALF_UP);
             String category = r[3];
 
+            // apply discount if Electronics
             if (category.equalsIgnoreCase("Electronics")) {
                 price = price.multiply(new BigDecimal("0.90")).setScale(2, RoundingMode.HALF_UP);
-                if (price.compareTo(new BigDecimal("500")) > 0) category = "Premium Electronics";
+                if (price.compareTo(new BigDecimal("500")) > 0) {
+                    category = "Premium Electronics";
+                }
             }
 
+            // determine price range
             String range = (price.compareTo(new BigDecimal("10.00")) <= 0) ? "Low"
                          : (price.compareTo(new BigDecimal("100.00")) <= 0) ? "Medium"
                          : (price.compareTo(new BigDecimal("500.00")) <= 0) ? "High"
@@ -70,26 +93,10 @@ public class ETLPipeline {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
             for (String[] r : rows) {
                 bw.write(String.join(",", r));
-                bw.newLine(); 
-            } catch (IOException e) {
-                System.err.println("ERROR: Writing " + path + ": " + e.getMessage());
+                bw.newLine();
             }
+        } catch (IOException e) {
+            System.err.println("ERROR: Writing " + path + ": " + e.getMessage());
         }
-    }
-
-    public static void main(String[] args) {
-        List<String[]> data = readFile(INPUT_FILE);
-        List<String[]> transformed = transformFile(data); 
-        writeFile(transformed, OUTPUT_FILE);
-
-        int rowsRead = Math.max(data.size() - 1, 0);
-        int rowsTransformed = Math.max(transformed.size() - 1, 0);
-        int rowsSkipped = rowsRead - rowsTransformed;
-
-        System.out.println("Summary:");
-        System.out.println("Rows read: " + rowsRead);
-        System.out.println("Rows transformed: " + rowsTransformed);
-        System.out.println("Rows skipped: " + rowsSkipped);
-        System.out.println("Output written to: " + OUTPUT_FILE);
     }
 }
