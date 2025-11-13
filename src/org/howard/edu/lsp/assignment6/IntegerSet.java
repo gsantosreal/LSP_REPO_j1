@@ -142,10 +142,12 @@ public class IntegerSet  {
    * @param other the other IntegerSet to perform the difference operation with
    */
   public void diff(IntegerSet other) {
-	  for (int i = 0; i < other.length(); i++) {
-          int value = other.set.get(i);
-          this.remove(value);
-      }
+	  List<Integer> diff = new ArrayList<>();
+	  for (Integer value : set) {
+		  if (!other.contains(value))
+			  diff.add(value);
+	  }
+	  set = diff;
   }
 
   /*
@@ -154,11 +156,9 @@ public class IntegerSet  {
    */
   public void complement(IntegerSet other) {
 	  List<Integer> complement = new ArrayList<>();
-      for (int i = 0; i < other.length(); i++) {
-          int val = other.set.get(i);
-          if (!this.contains(val)) {
-              complement.add(val);
-          }
+      for (int value : other.set) {
+          if (!this.contains(value))
+              complement.add(value);
       }
       set = complement;
   }
